@@ -1,0 +1,69 @@
+{
+  "name": "AgencyReport AI - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d17f9cc2-5af4-4b6b-b56a-ff3c742c080d",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "codewithfarhan07@gmail.com",
+        "subject": "⚠️ AgencyReport AI Workflow Failed",
+        "message": "=Workflow: {{ $json.workflow.name }}\nError: {{ $json.execution.error.message }}\nTime: {{ $json.execution.startedAt }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b2f094fa-0cfc-41af-b486-8d9d17962504",
+      "name": "Send a message",
+      "webhookId": "cc64e9aa-e250-4142-b5cd-243c2fbf8cbd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wlqIY3XJqQDlyx1c",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "60b2e57b-71e6-422b-bd68-61d886052cda",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b0cfee14665af0b55242b7392a2beead508d6933eb9884059ba61c7572e78855"
+  },
+  "nodeGroups": [],
+  "id": "B4Wz2G3hIGAMr6yJ",
+  "tags": []
+}

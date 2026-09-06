@@ -1,0 +1,481 @@
+{
+  "name": "AgencyReport AI",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        48
+      ],
+      "id": "97d3c9f6-06b1-4a51-b76c-bf56929fbe77",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17PPwgtupdm8HzQiXP-FdvytOG-jZXPHsXWcWIU-mSrQ",
+          "mode": "list",
+          "cachedResultName": "AgencyReport AI - Campaign Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17PPwgtupdm8HzQiXP-FdvytOG-jZXPHsXWcWIU-mSrQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "campaign_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17PPwgtupdm8HzQiXP-FdvytOG-jZXPHsXWcWIU-mSrQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -416,
+        -208
+      ],
+      "id": "6952a88b-4e09-4283-b3be-f06bcf0657dc",
+      "name": "Read Campaign Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "9LAAxL8vCDRKcoKN",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4c6f0546-bbb7-4068-b108-2ff181242111",
+              "leftValue": "={{ $json.client_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "77ab8209-f696-4029-bd6c-66de887bfbf6",
+              "leftValue": "={{ $json.platform }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c20a25b7-86fa-4f23-b09b-6e7b6b2b751d",
+              "leftValue": "={{ $json.reporting_period }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0af80738-f4cf-46e7-9818-7a13d3db01fd",
+              "leftValue": "={{ $json.spend }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "68e9088f-3037-4b9c-a479-48cf734d1412",
+              "leftValue": "={{ $json.clicks }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "2ce29241-a943-49e5-84de-2b7b6914765c",
+              "leftValue": "={{ $json.impressions }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -176,
+        -48
+      ],
+      "id": "e62ab339-aff2-4499-b0e7-eab7e6160896",
+      "name": "Validate Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\n// Group by client_name + platform\nconst groups = {};\nfor (const row of rows) {\n  const key = `${row.client_name}|${row.platform}`;\n  if (!groups[key]) groups[key] = [];\n  groups[key].push(row);\n}\n\nconst results = [];\n\nfor (const key in groups) {\n  const periods = groups[key].sort((a, b) =>\n    a.reporting_period.localeCompare(b.reporting_period)\n  );\n\n  // Last period = current, second-to-last = previous\n  const current = periods[periods.length - 1];\n  const previous = periods.length > 1 ? periods[periods.length - 2] : null;\n\n  results.push({\n    json: {\n      client_name: current.client_name,\n      platform: current.platform,\n      campaign_name: current.campaign_name,\n      current,\n      previous\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -224
+      ],
+      "id": "f37941d4-e2a8-4b7f-b827-d4c1bc65cec6",
+      "name": "Group by Client & Period"
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeDiv(numerator, denominator) {\n  if (!denominator || denominator === 0) return 0;\n  return numerator / denominator;\n}\n\nfunction calcMetrics(period) {\n  return {\n    ctr: safeDiv(period.clicks, period.impressions) * 100,\n    conversion_rate: safeDiv(period.conversions, period.clicks) * 100,\n    cpc: safeDiv(period.spend, period.clicks),\n    cpa: safeDiv(period.spend, period.conversions),\n    roas: safeDiv(period.revenue, period.spend)\n  };\n}\n\nfunction pctChange(current, previous) {\n  if (!previous || previous === 0) return 0;\n  return ((current - previous) / previous) * 100;\n}\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  const current = data.current;\n  const previous = data.previous;\n\n  const currentMetrics = calcMetrics(current);\n  const previousMetrics = previous ? calcMetrics(previous) : null;\n\n  const comparison = previousMetrics ? {\n    ctr_change: pctChange(currentMetrics.ctr, previousMetrics.ctr),\n    conversion_rate_change: pctChange(currentMetrics.conversion_rate, previousMetrics.conversion_rate),\n    cpc_change: pctChange(currentMetrics.cpc, previousMetrics.cpc),\n    cpa_change: pctChange(currentMetrics.cpa, previousMetrics.cpa),\n    roas_change: pctChange(currentMetrics.roas, previousMetrics.roas)\n  } : null;\n\n  results.push({\n    json: {\n      client_name: data.client_name,\n      platform: data.platform,\n      campaign_name: data.campaign_name,\n      current,\n      previous,\n      current_metrics: currentMetrics,\n      previous_metrics: previousMetrics,\n      comparison\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -32
+      ],
+      "id": "d7fb8876-5573-400a-be9a-e4e0167876b0",
+      "name": "Calculate Metrics & Comparison"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const d = item.json;\n\n  const prompt = `\nYou are a marketing performance analyst. Use ONLY the data below. Do not invent numbers or results.\n\nClient: ${d.client_name}\nPlatform: ${d.platform}\nCampaign: ${d.campaign_name}\n\nCURRENT PERIOD (${d.current.reporting_period}):\nSpend: $${d.current.spend}\nImpressions: ${d.current.impressions}\nClicks: ${d.current.clicks}\nConversions: ${d.current.conversions}\nRevenue: $${d.current.revenue}\nCTR: ${d.current_metrics.ctr.toFixed(2)}%\nConversion Rate: ${d.current_metrics.conversion_rate.toFixed(2)}%\nCPC: $${d.current_metrics.cpc.toFixed(2)}\nCPA: $${d.current_metrics.cpa.toFixed(2)}\nROAS: ${d.current_metrics.roas.toFixed(2)}\n\nPREVIOUS PERIOD (${d.previous.reporting_period}):\nSpend: $${d.previous.spend}\nCTR: ${d.previous_metrics.ctr.toFixed(2)}%\nConversion Rate: ${d.previous_metrics.conversion_rate.toFixed(2)}%\nCPC: $${d.previous_metrics.cpc.toFixed(2)}\nCPA: $${d.previous_metrics.cpa.toFixed(2)}\nROAS: ${d.previous_metrics.roas.toFixed(2)}\n\nPERCENTAGE CHANGE:\nCTR: ${d.comparison.ctr_change.toFixed(1)}%\nConversion Rate: ${d.comparison.conversion_rate_change.toFixed(1)}%\nCPC: ${d.comparison.cpc_change.toFixed(1)}%\nCPA: ${d.comparison.cpa_change.toFixed(1)}%\nROAS: ${d.comparison.roas_change.toFixed(1)}%\n\nRespond ONLY in this exact JSON format, with no extra text:\n{\n  \"performance_summary\": \"2-3 sentence summary\",\n  \"key_wins\": [\"win 1\", \"win 2\"],\n  \"areas_for_attention\": [\"issue 1\", \"issue 2\"],\n  \"recommendations\": [\"recommendation 1\", \"recommendation 2\"]\n}\n`.trim();\n\n  results.push({\n    json: {\n      ...d,\n      ai_prompt: prompt\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -192
+      ],
+      "id": "6d68a398-8111-43f8-8a80-ed595fe7f8f2",
+      "name": "Prepare AI Input"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": " https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "contentType": "=json",
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={{ { \"contents\": [ { \"parts\": [ { \"text\": $json.ai_prompt } ] } ] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        -96
+      ],
+      "id": "c73ac09b-9184-4051-a565-8fe4361e7d19",
+      "name": "Generate AI Insights",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "ofvCF32DVX3XWe5o",
+          "name": "Query Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare AI Input').all(); // pulls back the earlier data by index\nconst results = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const d = items[i].json;\n  const original = originalItems[i].json; // has client_name, current, previous, current_metrics, comparison\n\n  let rawText = d.candidates[0].content.parts[0].text;\n  rawText = rawText.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n\n  let aiInsights;\n  try {\n    aiInsights = JSON.parse(rawText);\n  } catch (err) {\n    aiInsights = {\n      performance_summary: \"AI response could not be parsed.\",\n      key_wins: [],\n      areas_for_attention: [],\n      recommendations: [],\n      parse_error: err.message\n    };\n  }\n\n  results.push({\n    json: {\n      ...original,\n      ai_insights: aiInsights\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -272
+      ],
+      "id": "dbfabf63-656c-4010-b576-d7be737cd2d6",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfunction metricClass(val, invert = false) {\n  const isGood = invert ? val <= 0 : val >= 0;\n  return isGood ? 'positive' : 'negative';\n}\n\nfunction arrow(val) {\n  return val >= 0 ? '▲' : '▼';\n}\n\nfor (const item of items) {\n  const d = item.json;\n  const c = d.current;\n  const cm = d.current_metrics;\n  const comp = d.comparison;\n  const ai = d.ai_insights;\n\n  const html = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f5f7; margin: 0; padding: 30px; color: #1f2937; }\n    .report { max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }\n    .header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; padding: 30px; }\n    .header h1 { margin: 0 0 5px; font-size: 22px; }\n    .header p { margin: 0; opacity: 0.9; font-size: 14px; }\n    .section { padding: 25px 30px; border-bottom: 1px solid #eee; }\n    .section h2 { font-size: 16px; margin: 0 0 15px; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.5px; }\n    .metrics-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }\n    .metric-card { background: #f9fafb; border-radius: 8px; padding: 15px; text-align: center; }\n    .metric-card .label { font-size: 12px; color: #6b7280; margin-bottom: 5px; }\n    .metric-card .value { font-size: 18px; font-weight: 700; color: #111827; }\n    .metric-card .change { font-size: 12px; margin-top: 4px; font-weight: 600; }\n    .positive { color: #16a34a; }\n    .negative { color: #dc2626; }\n    ul { padding-left: 20px; margin: 8px 0; }\n    li { margin-bottom: 6px; font-size: 14px; }\n    .summary-text { font-size: 14px; line-height: 1.6; color: #374151; margin: 0; }\n    .footer { padding: 20px 30px; text-align: center; font-size: 12px; color: #9ca3af; }\n    @media (max-width: 600px) {\n      body { padding: 20px 12px; }\n      .section { padding: 20px 18px; }\n      .header { padding: 24px 18px; }\n      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"report\">\n    <div class=\"header\">\n      <h1>📊 Marketing Performance Report</h1>\n      <p>${d.client_name} · ${d.platform} · ${d.campaign_name} · ${c.reporting_period}</p>\n    </div>\n    <div class=\"section\">\n      <h2>Campaign Overview</h2>\n      <div class=\"metrics-grid\">\n        <div class=\"metric-card\"><div class=\"label\">Spend</div><div class=\"value\">$${c.spend.toLocaleString()}</div></div>\n        <div class=\"metric-card\"><div class=\"label\">Impressions</div><div class=\"value\">${c.impressions.toLocaleString()}</div></div>\n        <div class=\"metric-card\"><div class=\"label\">Clicks</div><div class=\"value\">${c.clicks.toLocaleString()}</div></div>\n        <div class=\"metric-card\"><div class=\"label\">Conversions</div><div class=\"value\">${c.conversions}</div></div>\n        <div class=\"metric-card\"><div class=\"label\">Revenue</div><div class=\"value\">$${c.revenue.toLocaleString()}</div></div>\n      </div>\n    </div>\n    <div class=\"section\">\n      <h2>Key Metrics</h2>\n      <div class=\"metrics-grid\">\n        <div class=\"metric-card\"><div class=\"label\">CTR</div><div class=\"value\">${cm.ctr.toFixed(2)}%</div><div class=\"change ${metricClass(comp.ctr_change)}\">${arrow(comp.ctr_change)} ${Math.abs(comp.ctr_change).toFixed(1)}%</div></div>\n        <div class=\"metric-card\"><div class=\"label\">Conv. Rate</div><div class=\"value\">${cm.conversion_rate.toFixed(2)}%</div><div class=\"change ${metricClass(comp.conversion_rate_change)}\">${arrow(comp.conversion_rate_change)} ${Math.abs(comp.conversion_rate_change).toFixed(1)}%</div></div>\n        <div class=\"metric-card\"><div class=\"label\">CPC</div><div class=\"value\">$${cm.cpc.toFixed(2)}</div><div class=\"change ${metricClass(comp.cpc_change, true)}\">${arrow(comp.cpc_change)} ${Math.abs(comp.cpc_change).toFixed(1)}%</div></div>\n        <div class=\"metric-card\"><div class=\"label\">CPA</div><div class=\"value\">$${cm.cpa.toFixed(2)}</div><div class=\"change ${metricClass(comp.cpa_change, true)}\">${arrow(comp.cpa_change)} ${Math.abs(comp.cpa_change).toFixed(1)}%</div></div>\n        <div class=\"metric-card\"><div class=\"label\">ROAS</div><div class=\"value\">${cm.roas.toFixed(2)}</div><div class=\"change ${metricClass(comp.roas_change)}\">${arrow(comp.roas_change)} ${Math.abs(comp.roas_change).toFixed(1)}%</div></div>\n      </div>\n    </div>\n    <div class=\"section\">\n      <h2>AI Performance Summary</h2>\n      <p class=\"summary-text\">${ai.performance_summary}</p>\n    </div>\n    <div class=\"section\">\n      <h2>✅ Key Wins</h2>\n      <ul>${ai.key_wins.map(w => `<li>${w}</li>`).join('')}</ul>\n    </div>\n    <div class=\"section\">\n      <h2>⚠️ Areas for Attention</h2>\n      <ul>${ai.areas_for_attention.map(a => `<li>${a}</li>`).join('')}</ul>\n    </div>\n    <div class=\"section\" style=\"border-bottom: none;\">\n      <h2>💡 Recommendations</h2>\n      <ul>${ai.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>\n    </div>\n    <div class=\"footer\">Generated by AgencyReport AI · ${new Date().toLocaleDateString()}</div>\n  </div>\n</body>\n</html>`;\n\n  results.push({\n    json: {\n      client_name: d.client_name,\n      platform: d.platform,\n      campaign_name: d.campaign_name,\n      reporting_period: c.reporting_period,\n      report_html: html\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -112
+      ],
+      "id": "3fae6ab1-1c26-4a35-adf0-202ca62addad",
+      "name": "Generate HTML Report"
+    },
+    {
+      "parameters": {
+        "operation": "html",
+        "binaryPropertyName": "={{ $json.report_html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        -304
+      ],
+      "id": "26d5d58b-c5b7-4066-9677-9f196eaacf7d",
+      "name": "Convert Report to File"
+    },
+    {
+      "parameters": {
+        "tableId": "reports",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "client_name",
+              "fieldValue": "={{ $json.client_name }}"
+            },
+            {
+              "fieldId": "platform",
+              "fieldValue": "={{ $json.platform }}"
+            },
+            {
+              "fieldId": "campaign_name",
+              "fieldValue": "={{ $json.campaign_name }}"
+            },
+            {
+              "fieldId": "reporting_period",
+              "fieldValue": "={{ $json.reporting_period }}"
+            },
+            {
+              "fieldId": "report_content",
+              "fieldValue": "={{ $json.report_html }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -112
+      ],
+      "id": "676b0377-281b-456b-8107-27abc4b9153b",
+      "name": "Store Report in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "eOs97ZpOKNUH3Yi0",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "codewithfarhan07@gmail.com",
+        "subject": "=Your Marketing Performance Report - {{ $json.client_name }} ({{ $json.reporting_period }})",
+        "message": "={{ $json.report_content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        16
+      ],
+      "id": "9694e385-4f6d-4428-8b4c-16f45a6d2f25",
+      "name": "Send a message",
+      "webhookId": "b9b0074e-bd98-467f-86dd-614ac2017610",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wlqIY3XJqQDlyx1c",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -640,
+        -208
+      ],
+      "id": "1d55e9cb-cb82-4122-abad-f9bc4f1890a0",
+      "name": "Weekly Schedule"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read Campaign Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Campaign Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Data": {
+      "main": [
+        [
+          {
+            "node": "Group by Client & Period",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group by Client & Period": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics & Comparison",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics & Comparison": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Input": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Insights": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Generate HTML Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HTML Report": {
+      "main": [
+        [
+          {
+            "node": "Convert Report to File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Store Report in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Report in Supabase": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Campaign Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "B4Wz2G3hIGAMr6yJ",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "d4f14f34-e4a9-4836-9bf6-033ec88feebe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b0cfee14665af0b55242b7392a2beead508d6933eb9884059ba61c7572e78855"
+  },
+  "nodeGroups": [],
+  "id": "vfVGLc12DADTxVRm",
+  "tags": []
+}
