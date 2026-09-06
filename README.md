@@ -197,4 +197,4 @@ These are documented as potential **Version 2** enhancements.
 
 ## 👤 Author
 
-Built by **Farhan Shah** as a full-stack AI engineering portfolio project, demonstrating end-to-end workflow automation, safe LLM integration, and production-style error handling — all on a free tech stack.
+Built by **Farhan Naeem** as a full-stack AI engineering portfolio project, demonstrating end-to-end workflow automation, safe LLM integration, and production-style error handling — all on a free tech stack.
