@@ -1,89 +1,481 @@
 # AgencyReport AI
 
-**AI-powered marketing client reporting automation** — built with n8n, Google Sheets, Google Gemini, Supabase, and Gmail.
+> **AI-powered marketing reporting automation for agencies**
 
-AgencyReport AI automatically collects marketing campaign data, calculates key performance metrics, compares current vs. previous reporting periods, generates AI-written performance insights, and delivers a polished, branded HTML report directly to a client's inbox — with zero manual work.
+AgencyReport AI automates the process of turning marketing campaign data into client-ready performance reports.
 
-This project was built as a portfolio piece to demonstrate practical AI + workflow automation engineering: designing a real data pipeline, integrating an LLM safely (grounded strictly in real data, no hallucinated numbers), handling errors gracefully, and shipping a production-style deliverable — all on a 100% free tech stack.
+Built with **n8n, Google Sheets, Google Gemini, Supabase, and Gmail**, the system reads campaign data, validates it, calculates key marketing metrics, compares reporting periods, generates AI-powered performance insights, creates a polished HTML report, stores the report history, and delivers the final report directly by email.
 
----
-
-## ✨ Features
-
-- 📊 **Automated data pipeline** — reads campaign data from Google Sheets, validates it, and groups it by client + platform
-- 📈 **Metric calculations** — CTR, Conversion Rate, CPC, CPA, and ROAS, with safe handling of division-by-zero edge cases
-- 🔁 **Period-over-period comparison** — automatically compares the current reporting period against the previous one
-- 🤖 **AI-generated insights** — Google Gemini analyzes the *real* calculated metrics (never invents numbers) to produce a performance summary, key wins, areas for attention, and recommendations
-- 🎨 **Polished HTML report** — a responsive, branded report with color-coded metric cards and AI commentary
-- 🗄️ **Persistent storage** — every generated report is saved to a Supabase database for historical record-keeping
-- 📧 **Automated delivery** — the finished report is emailed directly to the client via Gmail, rendered inline
-- 🛡️ **Error handling** — retry logic on AI API calls, `Continue On Fail` isolation so one bad record doesn't crash a run, and a dedicated error-notification workflow
-- ⏰ **Dual triggers** — supports both manual execution (for testing) and a weekly scheduled run (for production use)
+The project demonstrates practical **AI + workflow automation engineering**, including data pipelines, business metric calculations, safe LLM integration, structured AI outputs, error handling, database storage, and automated report delivery — using a free tech stack.
 
 ---
 
-## 🧱 Tech Stack
+# 🎯 The Problem
 
-| Layer | Tool | Why |
-|---|---|---|
-| Automation / Orchestration | [n8n](https://n8n.io) (self-hosted) | Free, unlimited, visual workflow builder |
-| Data Source | Google Sheets | Free, simple to simulate real campaign data |
-| AI / Insights | Google Gemini (`gemini-3.6-flash`) via Google AI Studio | Generous free tier, no credit card required |
-| Database | [Supabase](https://supabase.com) | Free-tier Postgres database with a simple REST/JS interface |
-| Report Format | HTML (responsive, inline CSS) | Renders cleanly in browsers and email clients alike |
-| Delivery | Gmail (OAuth2) | Free, reliable, familiar to any client |
+Marketing agencies often spend significant time preparing recurring client reports.
 
-**100% free to build and run** — no paid APIs, no paid hosting, no subscriptions.
+A typical reporting process can involve:
+
+* Collecting campaign performance data
+* Checking and validating the data
+* Calculating marketing metrics
+* Comparing current and previous reporting periods
+* Writing performance summaries
+* Identifying wins and areas for improvement
+* Creating client-ready reports
+* Sending reports manually
+
+These repetitive tasks can consume valuable time that could otherwise be spent on campaign strategy and client growth.
 
 ---
 
-## 🏗️ Architecture
+# 💡 The Solution
 
-```
-Google Sheets (campaign data)
-        ↓
-   n8n Trigger (Manual or Weekly Schedule)
-        ↓
-   Read Campaign Data
-        ↓
-   Validate Data              → discards rows with missing/invalid fields
-        ↓
-   Group by Client & Period   → groups rows by client + platform, splits current vs. previous period
-        ↓
-   Calculate Metrics & Comparison → CTR, Conv. Rate, CPC, CPA, ROAS + % change vs. previous period
-        ↓
-   Prepare AI Input           → formats a structured, data-grounded prompt
-        ↓
-   Generate AI Insights       → Google Gemini API (retry-on-fail enabled)
-        ↓
-   Parse AI Response          → extracts structured JSON (summary, wins, issues, recommendations)
-        ↓
-   Generate HTML Report       → builds a responsive, branded report
-        ↓
-   ┌───────────────┴───────────────┐
-   ↓                               ↓
-Convert Report to File      Store Report in Supabase
-(for local preview)                ↓
-                             Send Report Email (Gmail, HTML body)
+AgencyReport AI automates the reporting workflow from campaign data to client delivery.
+
+```text
+Campaign Data
+      ↓
+Validate Data
+      ↓
+Calculate Metrics
+      ↓
+Compare Reporting Periods
+      ↓
+Generate AI Insights
+      ↓
+Create HTML Report
+      ↓
+Store Report History
+      ↓
+Email Client
 ```
 
-**Error handling:** Any node failure in the AI step retries automatically (3x). If an item still fails, `Continue On Fail` ensures the rest of the batch still completes. A separate `AgencyReport AI - Error Handler` workflow listens for any workflow-level failure and sends an email alert.
+The AI is provided with **real calculated metrics only** and is instructed to generate insights based on the supplied data rather than inventing performance numbers.
 
 ---
 
-## 📂 Repository Structure
+# ✨ Key Features
 
+* 📊 **Automated data pipeline** — reads campaign data from Google Sheets, validates records, and prepares data for reporting
+* 📈 **Marketing metric calculations** — calculates CTR, Conversion Rate, CPC, CPA, and ROAS with safe handling for division-by-zero edge cases
+* 🔁 **Period-over-period comparison** — compares current and previous reporting periods to identify performance trends
+* 🤖 **AI-generated insights** — uses Google Gemini to generate a performance summary, key wins, areas for attention, and recommendations based on real calculated metrics
+* 🛡️ **Data-grounded AI** — AI prompts contain structured performance data and explicitly instruct the model not to invent numbers or results
+* 🎨 **HTML report generation** — creates a responsive, branded report with metric cards, performance trends, and AI-generated commentary
+* 🗄️ **Persistent report storage** — saves generated reports to Supabase for historical record-keeping
+* 📧 **Automated report delivery** — sends the finished HTML report directly to the client through Gmail
+* 🛡️ **Error handling** — includes retry logic for AI calls, `Continue On Fail` isolation, and a dedicated error-notification workflow
+* ⏰ **Flexible execution** — supports manual execution for testing and scheduled execution for recurring reporting
+
+---
+
+# 🧱 Tech Stack
+
+| Layer                      | Technology        | Purpose                                        |
+| -------------------------- | ----------------- | ---------------------------------------------- |
+| Automation & Orchestration | n8n (Self-hosted) | Manages the complete workflow and integrations |
+| Campaign Data              | Google Sheets     | Provides simulated marketing campaign data     |
+| AI Insights                | Google Gemini     | Generates data-grounded performance insights   |
+| Database                   | Supabase          | Stores generated reports and reporting history |
+| Report Format              | HTML + Inline CSS | Creates responsive client-ready reports        |
+| Email Delivery             | Gmail             | Delivers reports directly to clients           |
+
+## 💰 Cost
+
+The project is designed around free-tier and self-hosted tools.
+
+> **No paid infrastructure is required to build and demonstrate the project.**
+
+Actual production usage may depend on the free-tier limits and policies of individual services.
+
+---
+
+# 🏗️ High-Level Architecture
+
+```text
+Google Sheets
+Campaign Data
+        │
+        ▼
+┌─────────────────────┐
+│     n8n Trigger     │
+│ Manual / Scheduled  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Read Campaign Data  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   Validate Data     │
+│ Remove Invalid Rows │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│ Prepare Reporting Data      │
+│ Current vs Previous Period  │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Calculate Metrics           │
+│ CTR • CVR • CPC • CPA • ROAS│
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Compare Performance         │
+│ Period-over-Period Changes  │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Prepare AI Input            │
+│ Real Calculated Data Only   │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Google Gemini              │
+│ Generate Performance Insight│
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│ Generate HTML Report        │
+└──────────────┬──────────────┘
+               │
+        ┌──────┴──────┐
+        ▼             ▼
+┌──────────────┐ ┌──────────────┐
+│ Supabase     │ │ Gmail        │
+│ Store Report │ │ Send Report  │
+└──────────────┘ └──────────────┘
 ```
+
+For a more detailed explanation, see:
+
+* `docs/architecture.md`
+* `docs/workflow.md`
+
+---
+
+# 🔄 How It Works
+
+## Step 1 — Read Campaign Data
+
+The workflow reads simulated marketing campaign data from Google Sheets.
+
+The data represents campaign performance from platforms such as:
+
+* Meta Ads
+* Google Ads
+
+Each record can include:
+
+* Client name
+* Platform
+* Campaign name
+* Reporting period
+* Spend
+* Impressions
+* Clicks
+* Conversions
+* Revenue
+
+---
+
+## Step 2 — Validate Data
+
+Before calculations begin, the workflow validates campaign records.
+
+Rows containing missing required fields or invalid numeric values are filtered out to prevent incorrect calculations and downstream workflow failures.
+
+---
+
+## Step 3 — Prepare Reporting Data
+
+The workflow prepares campaign data for reporting and comparison.
+
+Data is organized according to the reporting context, including the current and previous reporting periods, allowing performance trends to be calculated.
+
+---
+
+## Step 4 — Calculate Marketing Metrics
+
+The workflow calculates key performance metrics.
+
+### CTR — Click-Through Rate
+
+```text
+CTR = (Clicks / Impressions) × 100
+```
+
+### Conversion Rate
+
+```text
+Conversion Rate = (Conversions / Clicks) × 100
+```
+
+### CPC — Cost Per Click
+
+```text
+CPC = Spend / Clicks
+```
+
+### CPA — Cost Per Acquisition
+
+```text
+CPA = Spend / Conversions
+```
+
+### ROAS — Return on Ad Spend
+
+```text
+ROAS = Revenue / Spend
+```
+
+The workflow includes safe handling for division-by-zero scenarios.
+
+---
+
+## Step 5 — Compare Reporting Periods
+
+The calculated metrics are compared with the previous reporting period.
+
+This helps identify whether performance has:
+
+* Improved
+* Declined
+* Remained stable
+
+Percentage changes are calculated where applicable.
+
+---
+
+## Step 6 — Generate AI Insights
+
+The calculated performance data is converted into a structured prompt and sent to Google Gemini.
+
+The AI receives **real calculated metrics only**.
+
+The prompt instructs the model to generate insights without inventing campaign numbers or unsupported performance claims.
+
+The AI produces structured insights such as:
+
+* Performance summary
+* Key wins
+* Areas for attention
+* Recommendations
+
+---
+
+# 🤖 Safe AI Integration
+
+AgencyReport AI is designed to reduce unreliable AI output.
+
+The workflow follows this approach:
+
+```text
+Real Campaign Data
+        ↓
+Validated Data
+        ↓
+Calculated Metrics
+        ↓
+Structured AI Prompt
+        ↓
+Google Gemini
+        ↓
+Structured Insights
+```
+
+The AI is used for **interpretation and recommendations**, while metric calculations are performed directly by the workflow.
+
+This means:
+
+```text
+n8n / Workflow Logic
+        ↓
+Calculates Numbers
+        ↓
+Google Gemini
+        ↓
+Explains the Numbers
+```
+
+The AI is not responsible for calculating or inventing performance metrics.
+
+---
+
+## Step 7 — Parse AI Response
+
+The workflow processes the AI response and extracts the structured output.
+
+The generated insight data includes:
+
+* Summary
+* Key wins
+* Areas for attention
+* Recommendations
+
+This structured data is then combined with the calculated metrics.
+
+---
+
+## Step 8 — Generate HTML Report
+
+The workflow creates a client-ready HTML report.
+
+The report includes:
+
+* Branded report header
+* Campaign information
+* Key performance metrics
+* Performance comparisons
+* Trend indicators
+* AI-generated performance summary
+* Key wins
+* Areas for attention
+* Recommendations
+
+The report uses responsive HTML and inline CSS so it can be displayed directly in email clients.
+
+---
+
+## Step 9 — Store Report History
+
+Each generated report is stored in Supabase.
+
+The database provides historical record-keeping for generated reports.
+
+---
+
+## Step 10 — Deliver the Report
+
+The completed report is sent directly to the client using Gmail.
+
+```text
+HTML Report Generated
+        ↓
+Report Stored in Supabase
+        ↓
+Email Prepared
+        ↓
+Client Receives Report
+```
+
+---
+
+# 📊 Example Report Output
+
+A generated report can include information such as:
+
+```text
+Marketing Performance Report
+
+CTR
+3.8%
+↑ Improved compared to the previous period
+
+ROAS
+4.2
+↑ Higher return on advertising spend
+
+CPA
+$14.50
+↓ Lower acquisition cost
+
+AI Performance Summary
+
+Campaign performance improved during the current
+reporting period. Increased engagement and improved
+return on ad spend indicate stronger campaign efficiency.
+
+Key Wins
+
+• ROAS improved compared to the previous period
+• Conversion performance increased
+
+Areas for Attention
+
+• Monitor campaigns with declining CTR
+
+Recommendations
+
+• Review high-performing campaigns for scaling
+• Optimize lower-performing campaigns
+```
+
+> The values above are example values used only to demonstrate the report format.
+
+---
+
+# 🛡️ Error Handling
+
+AgencyReport AI includes multiple reliability measures.
+
+## AI Retry Logic
+
+If the AI request fails temporarily, the workflow retries the request before continuing.
+
+```text
+AI Request
+    ↓
+Failure
+    ↓
+Retry
+    ↓
+Retry
+    ↓
+Retry
+```
+
+---
+
+## Continue On Fail
+
+If one item encounters an issue, the workflow can continue processing instead of immediately crashing the entire run.
+
+This helps isolate problematic records.
+
+---
+
+## Dedicated Error Workflow
+
+A separate workflow handles workflow-level failures.
+
+```text
+Main Workflow Error
+        ↓
+Error Handler Workflow
+        ↓
+Send Error Notification
+        ↓
+Administrator
+```
+
+This ensures failures are surfaced instead of remaining silent.
+
+---
+
+# 📂 Repository Structure
+
+```text
 agency-report-ai/
 │
 ├── README.md
 │
 ├── n8n-workflows/
-│   ├── agency-report-ai.json          # main automation workflow
+│   ├── agency-report-ai.json
 │   └── agency-report-ai-error-handler.json
 │
 ├── sample-data/
-│   └── campaign-data.csv              # sample simulated campaign data
+│   └── campaign-data.csv
 │
 └── docs/
     ├── architecture.md
@@ -100,47 +492,73 @@ agency-report-ai/
 
 ---
 
-## 🚀 How It Works — Step by Step
+# 🔒 Sample Data
 
-1. **Data source:** A Google Sheet simulates campaign data pulled from ad platforms (Meta Ads, Google Ads), with fields for client, platform, campaign, reporting period, spend, impressions, clicks, conversions, and revenue.
-2. **Validation:** Rows missing required fields or containing invalid numeric data are filtered out before processing, preventing crashes downstream.
-3. **Grouping & comparison:** Rows are grouped by client + platform, then split into "current" and "previous" reporting periods for trend comparison.
-4. **Metric calculation:** CTR, Conversion Rate, CPC, CPA, and ROAS are calculated for both periods, along with percentage change — all with safe division-by-zero handling.
-5. **AI insight generation:** A structured prompt (containing *only* real calculated data) is sent to Google Gemini, which is explicitly instructed not to invent numbers or results. The AI returns a JSON object with a performance summary, key wins, areas for attention, and recommendations.
-6. **Report generation:** All of the above is assembled into a polished, responsive HTML report with a branded header, metric cards with color-coded trend arrows, and the AI-generated commentary.
-7. **Storage:** Every generated report is inserted into a Supabase `reports` table for historical tracking.
-8. **Delivery:** The report is emailed directly to the client as an HTML email body via Gmail.
+This project uses **simulated campaign data**.
 
----
+It does not connect directly to live Meta Ads or Google Ads accounts.
 
-## 🔒 Sample Data
+This was an intentional scope decision for Version 1 to keep the project:
 
-This project uses **simulated data** in a Google Sheet — it does not connect to any real Meta Ads or Google Ads accounts. This was an intentional scope decision (see "What Was Not Built" below) to keep the project free, simple, and demo-friendly while still proving the full automation and AI pipeline end-to-end.
+* Free to build and demonstrate
+* Easy to test
+* Simple to understand
+* Focused on the automation and AI reporting pipeline
 
-Sample fields:
+The project still demonstrates the complete workflow from campaign data processing to AI insights and automated report delivery.
 
-| Field | Description |
-|---|---|
-| `client_name` | Client/company name |
-| `platform` | Meta Ads / Google Ads |
-| `campaign_name` | Campaign name |
-| `reporting_period` | Reporting period (`YYYY-MM`) |
-| `spend` | Advertising spend |
-| `impressions` | Number of impressions |
-| `clicks` | Number of clicks |
-| `conversions` | Number of conversions |
-| `revenue` | Revenue generated |
+## Sample Data Fields
+
+| Field              | Description                          |
+| ------------------ | ------------------------------------ |
+| `client_name`      | Client or company name               |
+| `platform`         | Advertising platform                 |
+| `campaign_name`    | Campaign name                        |
+| `reporting_period` | Reporting period in `YYYY-MM` format |
+| `spend`            | Advertising spend                    |
+| `impressions`      | Number of impressions                |
+| `clicks`           | Number of clicks                     |
+| `conversions`      | Number of conversions                |
+| `revenue`          | Revenue generated                    |
 
 ---
 
-## ⚙️ Setup / Running Locally
+# ⚙️ Setup and Running Locally
 
-1. **n8n:** Install locally with `npx n8n`, or via Docker.
-2. **Google Sheets:** Create a Google Cloud project, enable the Sheets + Drive APIs, and create OAuth2 credentials for the n8n Google Sheets node.
-3. **Google Gemini:** Get a free API key from [Google AI Studio](https://aistudio.google.com).
-4. **Supabase:** Create a free project and run the SQL below to create the `reports` table.
-5. **Gmail:** Enable the Gmail API in the same Google Cloud project and reuse/create OAuth2 credentials for the n8n Gmail node.
-6. Import `n8n-workflows/agency-report-ai.json` into your n8n instance and connect your credentials to each node.
+## 1. Set Up n8n
+
+Install n8n locally:
+
+```bash
+npx n8n
+```
+
+You can also run n8n using Docker.
+
+---
+
+## 2. Configure Google Sheets
+
+Create a Google Cloud project and configure OAuth2 credentials for Google Sheets.
+
+Enable:
+
+* Google Sheets API
+* Google Drive API
+
+Connect the credentials to the Google Sheets node in n8n.
+
+---
+
+## 3. Configure Google Gemini
+
+Create an API key through Google AI Studio and connect it to the AI integration used by the workflow.
+
+---
+
+## 4. Configure Supabase
+
+Create a Supabase project and create the `reports` table.
 
 ```sql
 create table reports (
@@ -154,47 +572,189 @@ create table reports (
 );
 ```
 
----
-
-## 🧭 What Was Not Built (Out of Scope for v1)
-
-Per the original project scope, the following were intentionally excluded from this version to keep the project focused and free to run:
-
-- Real Meta Ads / Google Ads API integrations
-- A full analytics platform or custom frontend dashboard
-- PDF report export
-- Multi-client batch processing
-- Slack notifications
-- Complex authentication / multi-agent systems
-
-These are documented as potential **Version 2** enhancements.
+Connect your Supabase credentials to the relevant n8n nodes.
 
 ---
 
-## 📈 Possible Version 2 Enhancements
+## 5. Configure Gmail
 
-- Real Meta Ads / Google Ads API integration
-- PDF export in addition to HTML
-- A simple dashboard to browse report history from Supabase
-- Multi-client batch report generation in a single run
-- Slack notification when a new report is generated
+Configure Gmail OAuth2 credentials and connect them to the Gmail node.
+
+The Gmail integration is responsible for delivering the generated HTML report.
 
 ---
 
-## 🖼️ Screenshots
+## 6. Import the Workflows
 
-*(See `docs/screenshots/` for the full set)*
+Import the following workflows into n8n:
 
-- Google Sheet with sample campaign data
-- Full n8n workflow canvas
-- Calculated metrics output
-- AI-generated insights (raw JSON)
-- Final polished HTML report
-- Supabase `reports` table with stored history
-- Delivered email in Gmail inbox
+```text
+n8n-workflows/
+├── agency-report-ai.json
+└── agency-report-ai-error-handler.json
+```
+
+After importing:
+
+1. Configure all required credentials
+2. Connect the Google Sheet data source
+3. Configure Supabase
+4. Configure Gmail
+5. Configure the AI integration
+6. Test the workflow manually
 
 ---
 
-## 👤 Author
+# 🧪 Testing
 
-Built by **Farhan Naeem** as a full-stack AI engineering portfolio project, demonstrating end-to-end workflow automation, safe LLM integration, and production-style error handling — all on a free tech stack.
+The workflow can be tested manually using the sample campaign data.
+
+Recommended testing process:
+
+```text
+Add Sample Campaign Data
+        ↓
+Run Workflow Manually
+        ↓
+Verify Validation
+        ↓
+Check Calculated Metrics
+        ↓
+Review AI Output
+        ↓
+Verify HTML Report
+        ↓
+Check Supabase Storage
+        ↓
+Confirm Email Delivery
+```
+
+Before production use, test:
+
+* Missing required fields
+* Invalid numeric values
+* Zero impressions
+* Zero clicks
+* Zero conversions
+* AI API failures
+* Database failures
+* Email delivery issues
+
+---
+
+# 🧭 Current Scope
+
+Version 1 focuses on demonstrating the complete reporting automation pipeline.
+
+The following features are intentionally outside the current scope:
+
+* Live Meta Ads API integration
+* Live Google Ads API integration
+* Custom frontend dashboard
+* PDF report export
+* Slack notifications
+* Complex authentication
+* Multi-agent systems
+
+These features can be added as future enhancements.
+
+---
+
+# 🚀 Possible Version 2 Enhancements
+
+Potential improvements include:
+
+* 🔗 Live Meta Ads API integration
+* 🔗 Live Google Ads API integration
+* 📄 PDF report export
+* 📊 Dashboard for browsing report history
+* 🔔 Slack notifications
+* 📈 Expanded analytics and visualizations
+* 🏢 More advanced client and reporting management
+* 📦 Expanded batch-processing capabilities
+
+---
+
+# 🖼️ Screenshots
+
+Screenshots are available in:
+
+```text
+docs/screenshots/
+```
+
+The project includes screenshots of:
+
+* Google Sheet campaign data
+* Complete n8n workflow
+* Metric calculations
+* AI-generated insights
+* Generated HTML report
+* Supabase report storage
+* Gmail report delivery
+
+---
+
+# 🎯 Business Value
+
+AgencyReport AI demonstrates how marketing agencies can reduce repetitive reporting work through automation.
+
+Instead of manually:
+
+```text
+Collect Data
+↓
+Calculate Metrics
+↓
+Compare Results
+↓
+Write Insights
+↓
+Create Report
+↓
+Send Email
+```
+
+The workflow automates the reporting pipeline:
+
+```text
+Campaign Data
+↓
+Automated Processing
+↓
+Metric Calculation
+↓
+AI Analysis
+↓
+HTML Report
+↓
+Database Storage
+↓
+Client Delivery
+```
+
+This approach can help agencies spend less time on repetitive reporting tasks and more time on strategy, optimization, and client growth.
+
+---
+
+# 👤 Author
+
+**Farhan Naeem**
+
+AI & Automation Developer focused on building:
+
+* AI-powered workflows
+* Business automation systems
+* LLM-powered applications
+* Data pipelines
+* Practical AI solutions
+
+This project demonstrates end-to-end automation engineering, data processing, safe LLM integration, report generation, database storage, and production-style error handling.
+
+---
+
+## 📄 License
+
+This project is built as a portfolio and learning project.
+
+Feel free to explore the repository and use it as a reference for learning workflow automation and AI-powered reporting systems.
